@@ -33,6 +33,12 @@ public class JDBCRunner {
                 SELECT * FROM flight
                 """;
 
+        String sqlGenerator = """
+                INSERT INTO info (data)
+                VALUES 
+                ('autogenerating')
+                """;
+
         try (Connection connection = ConnectionManager.openConncetion();
              Statement statement = connection.createStatement()) {
             System.out.println(connection.getTransactionIsolation());
@@ -49,6 +55,13 @@ public class JDBCRunner {
                 System.out.println(selectResult.getString("flight_no"));
                 System.out.println(selectResult.getString("status"));
                 System.out.println("===============");
+            }
+
+            int executeGeneratedResult = statement.executeUpdate(sqlGenerator, Statement.RETURN_GENERATED_KEYS);
+            ResultSet generatedKey = statement.getGeneratedKeys();
+            if (generatedKey.next()) {
+                int generatedId = generatedKey.getInt("id");
+                System.out.println(generatedId);
             }
         }
     }
