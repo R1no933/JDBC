@@ -4,10 +4,9 @@ import jdbc.util.ConnectionManager;
 
 import org.postgresql.Driver;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,10 +19,21 @@ public class JDBCRunner {
         System.out.println(resultSqlInjection);
         System.out.println("===============================");
 
+        Long longFlightId = 2L;
+        List<Long> resultPS = getTicketsByIdWithPS(longFlightId);
+        System.out.println(resultPS);
+        System.out.println("===============================");
+
+        List<Long> fligthBetween = getTicketsBetween(LocalDate.of(2020, 1, 1).atStartOfDay(), LocalDateTime.now());
+        System.out.println(fligthBetween);
+        System.out.println("===============================");
+
+
+
         String sqlDDL = """
                 CREATE TABLE IF NOT EXISTS info (
                     id SERIAL PRIMARY KEY ,
-                    data TEXT NOT NULL 
+                    data TEXT NOT NULL
                 )
                 """;
 
@@ -42,7 +52,7 @@ public class JDBCRunner {
 
         String sqlGenerator = """
                 INSERT INTO info (data)
-                VALUES 
+                VALUES
                 ('autogenerating')
                 """;
 
@@ -93,5 +103,52 @@ public class JDBCRunner {
             }
         }
         return resultList;
+    }
+
+    private static List<Long> getTicketsByIdWithPS(Long flightId) throws SQLException {
+        String sql = """
+                    SELECT id
+                    FROM ticket
+                    WHERE flight_id = ?
+                    """;
+
+        List<Long> resultList = new ArrayList<>();
+
+        try (Connection connection = ConnectionManager.openConncetion();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setLong(1, flightId);
+            ResultSet result = preparedStatement.executeQuery();
+            while (result.next()) {
+                resultList.add(result.getObject("id", Long.class)); //NULL-SAFE
+            }
+        }
+        return resultList;
+    }
+
+    private static List<Long> getTicketsBetween(LocalDateTime startDate, LocalDateTime endDate) throws SQLException {
+        String sql = """
+                SELECT id
+                FROM flight
+                WHERE arrival_date BETWEEN ? AND ?
+                """;
+        List<Long> result = new ArrayList<>();
+
+        try (Connection connection = ConnectionManager.openConncetion();
+            PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            System.out.println(preparedStatement);
+            preparedStatement.setTimestamp(1, Timestamp.valueOf(startDate));
+            System.out.println(preparedStatement);
+            preparedStatement.setTimestamp(2, Timestamp.valueOf(endDate));
+            System.out.println(preparedStatement);
+
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                 result.add(resultSet.getLong("id"));
+            }
+        }
+
+        return result;
     }
 }
