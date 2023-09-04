@@ -8,10 +8,17 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 public class JDBCRunner {
     public static void main(String[] args) throws SQLException {
         Class<Driver> driverClass = Driver.class;
+
+        String flightId = "2 OR 1 = 1"; //injection can make there (2 OR 1 = 1; DROP BASE info etc
+        List<Long> resultSqlInjection = getTicketsById(flightId);
+        System.out.println(resultSqlInjection);
+        System.out.println("===============================");
 
         String sqlDDL = """
                 CREATE TABLE IF NOT EXISTS info (
@@ -64,5 +71,27 @@ public class JDBCRunner {
                 System.out.println(generatedId);
             }
         }
+
+
+    }
+
+    private static List<Long> getTicketsById(String flightId) throws SQLException {
+        String sql = """
+                    SELECT id
+                    FROM ticket
+                    WHERE flight_id = %s
+                    """.formatted(flightId);
+
+        List<Long> resultList = new ArrayList<>();
+
+        try (Connection connection = ConnectionManager.openConncetion();
+            Statement statement = connection.createStatement()) {
+
+            ResultSet result = statement.executeQuery(sql);
+            while (result.next()) {
+                resultList.add(result.getObject("id", Long.class)); //NULL-SAFE
+            }
+        }
+        return resultList;
     }
 }
