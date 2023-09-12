@@ -137,6 +137,10 @@ public class JDBCRunner {
         try (Connection connection = ConnectionManager.openConncetion();
             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
+            preparedStatement.setFetchSize(50); //set fetch size for request
+            preparedStatement.setQueryTimeout(10); //set time out for request
+            preparedStatement.setMaxRows(100); // set max rows for request
+
             System.out.println(preparedStatement);
             preparedStatement.setTimestamp(1, Timestamp.valueOf(startDate));
             System.out.println(preparedStatement);
