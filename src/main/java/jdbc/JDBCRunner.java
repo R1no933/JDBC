@@ -14,6 +14,9 @@ public class JDBCRunner {
     public static void main(String[] args) throws SQLException {
         Class<Driver> driverClass = Driver.class;
 
+        checkMetaDate();
+        System.out.println("===============================");
+
         String flightId = "2 OR 1 = 1"; //injection can make there (2 OR 1 = 1; DROP BASE info etc
         List<Long> resultSqlInjection = getTicketsById(flightId);
         System.out.println(resultSqlInjection);
@@ -154,5 +157,33 @@ public class JDBCRunner {
         }
 
         return result;
+    }
+
+    private static void checkMetaDate() throws SQLException {
+        try (Connection connection = ConnectionManager.openConncetion()) {
+            DatabaseMetaData metaData = connection.getMetaData();
+            ResultSet catalogs = metaData.getCatalogs();
+            while (catalogs.next()) {
+                System.out.println("DATA_BASE");
+                System.out.println(catalogs.getString(1));
+                String catalog = catalogs.getString(1);
+
+                ResultSet schemas = metaData.getSchemas();
+                while (schemas.next()) {
+                    System.out.println("SCHEMAS");
+                    System.out.println(schemas.getString("TABLE_SCHEM"));
+                    String schema = schemas.getString("TABLE_SCHEM");
+
+                    ResultSet tables = metaData.getTables(catalog, schema, "%", null);
+
+                    if (schema.equals("public")) {
+                        while (tables.next()) {
+                            System.out.println("TABLES");
+                            System.out.println(tables.getString("TABLE_NAME"));
+                        }
+                    }
+                }
+            }
+        }
     }
 }
