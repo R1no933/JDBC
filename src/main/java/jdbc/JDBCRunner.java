@@ -2,6 +2,7 @@ package jdbc;
 
 import jdbc.util.ConnectionManager;
 
+import jdbc.util.ConnectionManagerWithPool;
 import org.postgresql.Driver;
 
 import java.sql.*;
@@ -14,7 +15,12 @@ public class JDBCRunner {
     public static void main(String[] args) throws SQLException {
         Class<Driver> driverClass = Driver.class;
 
-        checkMetaDate();
+        try {
+            checkMetaDate();
+        } finally {
+            ConnectionManagerWithPool.closeConnection();
+        }
+
         System.out.println("===============================");
 
         String flightId = "2 OR 1 = 1"; //injection can make there (2 OR 1 = 1; DROP BASE info etc
@@ -98,7 +104,7 @@ public class JDBCRunner {
         List<Long> resultList = new ArrayList<>();
 
         try (Connection connection = ConnectionManager.openConncetion();
-            Statement statement = connection.createStatement()) {
+             Statement statement = connection.createStatement()) {
 
             ResultSet result = statement.executeQuery(sql);
             while (result.next()) {
@@ -160,7 +166,7 @@ public class JDBCRunner {
     }
 
     private static void checkMetaDate() throws SQLException {
-        try (Connection connection = ConnectionManager.openConncetion()) {
+        try (Connection connection = ConnectionManagerWithPool.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
             ResultSet catalogs = metaData.getCatalogs();
             while (catalogs.next()) {
