@@ -20,6 +20,9 @@ public class TicketEntity {
         this.cost = cost;
     }
 
+    public TicketEntity() {
+    }
+
     public Long getId() {
         return id;
     }
