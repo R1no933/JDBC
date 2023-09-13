@@ -1,5 +1,6 @@
 package jdbc.dao;
 
+import jdbc.dto.TicketEntityFilter;
 import jdbc.entity.TicketEntity;
 import jdbc.exception.DaoExceptions;
 import jdbc.util.ConnectionManagerWithPool;
@@ -8,6 +9,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class TicketDao {
 
@@ -44,6 +46,43 @@ public class TicketDao {
             """;
 
     private TicketDao() {}
+
+    public List<TicketEntity> findAllWithFilter(TicketEntityFilter filter) {
+        List<Object> filterParameters = new ArrayList<>();
+        List<String> whereSql = new ArrayList<>();
+        if (filter.seatNo() != null) {
+            whereSql.add("seat_no LIKE ?");
+            filterParameters.add("%" + filter.seatNo() + "%");
+        }
+
+        if (filter.passengerName() != null) {
+            whereSql.add("passenger_name = ?");
+            filterParameters.add(filter.passengerName());
+        }
+        filterParameters.add(filter.limit());
+        filterParameters.add(filter.offset());
+
+        String where = whereSql.stream()
+                .collect(Collectors.joining(" AND "," WHERE ", " LIMIT ? OFFSET ? "));
+
+        String sql = FIND_ALL_SQL + where;
+        try (Connection connection = ConnectionManagerWithPool.getConnection();
+            PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            for (int i = 0; i < filterParameters.size(); i++) {
+                preparedStatement.setObject(i + 1, filterParameters.get(i));
+            }
+
+            ResultSet resultSet = preparedStatement.executeQuery();
+            List<TicketEntity> tickets = new ArrayList<>();
+            while (resultSet.next()) {
+                 tickets.add(buildTicket(resultSet));
+            }
+
+            return tickets;
+        } catch (SQLException throwables) {
+            throw new DaoExceptions(throwables);
+        }
+    }
 
     public List<TicketEntity> findAll() {
         try (Connection connection = ConnectionManagerWithPool.getConnection();
