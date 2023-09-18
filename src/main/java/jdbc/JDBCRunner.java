@@ -2,6 +2,7 @@ package jdbc;
 
 import jdbc.util.ConnectionManager;
 
+
 import jdbc.util.ConnectionManagerWithPool;
 import org.postgresql.Driver;
 
@@ -104,6 +105,7 @@ public class JDBCRunner {
         List<Long> resultList = new ArrayList<>();
 
         try (Connection connection = ConnectionManager.openConncetion();
+
              Statement statement = connection.createStatement()) {
 
             ResultSet result = statement.executeQuery(sql);
@@ -164,6 +166,7 @@ public class JDBCRunner {
 
         return result;
     }
+
 
     private static void checkMetaDate() throws SQLException {
         try (Connection connection = ConnectionManagerWithPool.getConnection()) {
