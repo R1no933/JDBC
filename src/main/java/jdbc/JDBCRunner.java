@@ -2,6 +2,8 @@ package jdbc;
 
 import jdbc.util.ConnectionManager;
 
+
+import jdbc.util.ConnectionManagerWithPool;
 import org.postgresql.Driver;
 
 import java.sql.*;
@@ -13,6 +15,14 @@ import java.util.List;
 public class JDBCRunner {
     public static void main(String[] args) throws SQLException {
         Class<Driver> driverClass = Driver.class;
+
+        try {
+            checkMetaDate();
+        } finally {
+            ConnectionManagerWithPool.closeConnection();
+        }
+
+        System.out.println("===============================");
 
         String flightId = "2 OR 1 = 1"; //injection can make there (2 OR 1 = 1; DROP BASE info etc
         List<Long> resultSqlInjection = getTicketsById(flightId);
@@ -95,7 +105,8 @@ public class JDBCRunner {
         List<Long> resultList = new ArrayList<>();
 
         try (Connection connection = ConnectionManager.openConncetion();
-            Statement statement = connection.createStatement()) {
+
+             Statement statement = connection.createStatement()) {
 
             ResultSet result = statement.executeQuery(sql);
             while (result.next()) {
@@ -137,6 +148,10 @@ public class JDBCRunner {
         try (Connection connection = ConnectionManager.openConncetion();
             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
+            preparedStatement.setFetchSize(50); //set fetch size for request
+            preparedStatement.setQueryTimeout(10); //set time out for request
+            preparedStatement.setMaxRows(100); // set max rows for request
+
             System.out.println(preparedStatement);
             preparedStatement.setTimestamp(1, Timestamp.valueOf(startDate));
             System.out.println(preparedStatement);
@@ -150,5 +165,34 @@ public class JDBCRunner {
         }
 
         return result;
+    }
+
+
+    private static void checkMetaDate() throws SQLException {
+        try (Connection connection = ConnectionManagerWithPool.getConnection()) {
+            DatabaseMetaData metaData = connection.getMetaData();
+            ResultSet catalogs = metaData.getCatalogs();
+            while (catalogs.next()) {
+                System.out.println("DATA_BASE");
+                System.out.println(catalogs.getString(1));
+                String catalog = catalogs.getString(1);
+
+                ResultSet schemas = metaData.getSchemas();
+                while (schemas.next()) {
+                    System.out.println("SCHEMAS");
+                    System.out.println(schemas.getString("TABLE_SCHEM"));
+                    String schema = schemas.getString("TABLE_SCHEM");
+
+                    ResultSet tables = metaData.getTables(catalog, schema, "%", null);
+
+                    if (schema.equals("public")) {
+                        while (tables.next()) {
+                            System.out.println("TABLES");
+                            System.out.println(tables.getString("TABLE_NAME"));
+                        }
+                    }
+                }
+            }
+        }
     }
 }
